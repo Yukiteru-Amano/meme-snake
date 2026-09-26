@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>MEME SNAKE 5.2</title>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; background:#0a0e14; color:#fff;
@@ -160,6 +161,14 @@ canvas { display:block; position:fixed; inset:0; }
 
 <script>
 "use strict";
+
+/* === VK Bridge init === */
+if (typeof vkBridge !== "undefined") {
+  vkBridge.send("VKWebAppInit")
+    .then(function(){ console.log("[VK] VKWebAppInit ok"); })
+    .catch(function(e){ console.error("[VK] VKWebAppInit error", e); });
+}
+
 var GRID = 20;
 var FOOD_SPAWN_ANIM = 0.25;
 var C = { GOLD:"#ffd633", RED:"#f24d4d", GREEN:"#4cd964", BLUE:"#66b3ff", PURPLE:"#9a6ad4", ORANGE:"#ff9933", OBSTACLE:"#59404d" };
@@ -298,11 +307,15 @@ function saveGame(){
     soundOn:G.soundOn
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e){}
+  if (typeof vkBridge !== "undefined") {
+    vkBridge.send("VKWebAppStorageSet", {
+      key: SAVE_KEY,
+      value: JSON.stringify(data)
+    }).catch(function(){});
+  }
 }
-function loadGame(){
-  var raw; try { raw = localStorage.getItem(SAVE_KEY); } catch(e){ return; }
-  if(!raw) return;
-  var d; try { d = JSON.parse(raw); } catch(e){ return; }
+
+function applySave(d){
   if(!d) return;
   G.best = d.best||0;
   if(d.bestPerMode) for(var k in d.bestPerMode) if(G.bestPerMode[k]!==undefined) G.bestPerMode[k]=d.bestPerMode[k];
@@ -321,6 +334,28 @@ function loadGame(){
       G.quests[k].progress = d.quests[k].progress||0;
       G.quests[k].done = !!d.quests[k].done;
     }
+  }
+  if(typeof updateUI === "function") updateUI();
+}
+
+function loadGame(){
+  var raw; try { raw = localStorage.getItem(SAVE_KEY); } catch(e){}
+  if(raw){
+    try { applySave(JSON.parse(raw)); } catch(e){}
+  }
+  if (typeof vkBridge !== "undefined") {
+    vkBridge.send("VKWebAppStorageGet", { keys: [SAVE_KEY] })
+      .then(function(resp){
+        var items = (resp && resp.keys) || [];
+        if (items.length && items[0].value) {
+          try {
+            var cloudData = JSON.parse(items[0].value);
+            localStorage.setItem(SAVE_KEY, items[0].value);
+            applySave(cloudData);
+          } catch(e){}
+        }
+      })
+      .catch(function(){});
   }
 }
 
@@ -541,16 +576,25 @@ function updateQuest(k, amt){
 
 function onResize(){
   var dpr = window.devicePixelRatio || 1;
-  G.w = window.innerWidth || document.documentElement.clientWidth || 800;
-  G.h = window.innerHeight || document.documentElement.clientHeight || 600;
-  if(G.w < 50) G.w = 800;
-  if(G.h < 50) G.h = 600;
+  var w1 = window.innerWidth || document.documentElement.clientWidth || 0;
+  var h1 = window.innerHeight || document.documentElement.clientHeight || 0;
+  if(w1 < 100 && window.parent){
+    try { w1 = window.parent.innerWidth || w1; } catch(e){}
+  }
+  if(h1 < 100 && window.parent){
+    try { h1 = window.parent.innerHeight || h1; } catch(e){}
+  }
+  G.w = w1 || 800;
+  G.h = h1 || 600;
+  if(G.w < 100) G.w = 800;
+  if(G.h < 100) G.h = 600;
   cv.width  = G.w * dpr;
   cv.height = G.h * dpr;
   cv.style.width  = G.w + "px";
   cv.style.height = G.h + "px";
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   recalcGrid();
+  console.log("[RESIZE]", G.w, G.h, "canvas:", cv.width, cv.height);
 }
 function recalcGrid(){
   var top = 70, bot = 50, side = 10;
@@ -571,34 +615,28 @@ function startGame(){
   G.portals.length = 0; G.trailParts.length = 0;
   G.obstacles.length = 0; G.confetti.length = 0; G.particles.length = 0;
   G.bossOn = false; G.bossTimer = 0; G.foodEaten = 0;
-
   var sx = Math.floor(GRID/2), sy = Math.floor(GRID/2);
   for(var i=0;i<3;i++){
     G.snake.push({x:sx-i, y:sy});
     G.snakeVis.push({x:sx-i, y:sy});
   }
   G.dir = {x:1,y:0}; G.nextDir = {x:1,y:0}; G.qDir = {x:1,y:0};
-
   G.score = 0; G.running = true; G.paused = false; G.over = false;
   G.moveTimer = 0; G.animProgress = 0;
   G.combo = 1; G.comboTimer = 0;
   G.reviveUsed = false;
   G.zoom = 1; G.zoomTarget = 1;
-
   G.baseInterval = MODES[G.mode].bi;
   G.moveInterval = G.baseInterval;
   G.scoreForSpeed = 0; G.speedLv = 0;
   G.scoreMult = 1; G.scoreMultTimer = 0;
   G.speedBoostTimer = 0; G.portalTimer = 0;
   G.timedTimer = 60;
-
   G.shieldActive = G.upShield > 0;
   G.magnetTimer = 0; G.freezeTimer = 0; G.invTimer = 0;
   G.xrayActive = G.upXray > 0;
-
   hideOver();
   $("status").textContent = MODES[G.mode].name + "!";
-
   if(G.mode === "hardcore") spawnObstacles();
   spawnFood();
   updateUI();
@@ -678,12 +716,10 @@ function moveSnake(){
   var head = G.snake[0];
   var nx = head.x + G.dir.x;
   var ny = head.y + G.dir.y;
-
   if(G.portals.length === 2){
     if(nx === G.portals[0].x && ny === G.portals[0].y){ nx=G.portals[1].x; ny=G.portals[1].y; G.portals.length=0; toast("ПОРТАЛ!"); }
     else if(nx === G.portals[1].x && ny === G.portals[1].y){ nx=G.portals[0].x; ny=G.portals[0].y; G.portals.length=0; toast("ПОРТАЛ!"); }
   }
-
   if(nx < 0 || nx >= GRID || ny < 0 || ny >= GRID){
     if(G.mode === "no_walls" || G.invTimer > 0){
       nx = ((nx % GRID) + GRID) % GRID;
@@ -693,7 +729,6 @@ function moveSnake(){
       die("Стена!"); return;
     }
   }
-
   var hitSelf = false;
   if(G.invTimer <= 0){
     for(var i=0;i<G.snake.length;i++){
@@ -701,7 +736,6 @@ function moveSnake(){
     }
   }
   if(hitSelf){ if(tryShield()) return; die("Своя змейка!"); return; }
-
   var hitObs = false;
   if(G.invTimer <= 0){
     for(var i=0;i<G.obstacles.length;i++){
@@ -709,18 +743,14 @@ function moveSnake(){
     }
   }
   if(hitObs){ if(tryShield()) return; die("Препятствие!"); return; }
-
   var newHead = { x:nx, y:ny };
   var ateFood = (nx === G.foodPos.x && ny === G.foodPos.y) && !G.bossOn;
   var ateBoss = G.bossOn && nx === G.bossPos.x && ny === G.bossPos.y;
-
   G.snake.unshift(newHead);
   G.snakeVis.unshift({ x:head.x, y:head.y });
-
   if(ateFood){ eatFoodFn(); }
   else if(ateBoss){ eatBossFn(); }
   else { G.snake.pop(); G.snakeVis.pop(); }
-
   if(ateFood && FOOD[G.foodType].death && G.invTimer <= 0){
     if(!tryShield()){ die("Съел череп"); return; }
   }
@@ -745,11 +775,9 @@ function eatFoodFn(){
   G.combo = Math.min(G.combo + 1, 20);
   pts = Math.floor(pts * G.combo);
   if(G.scoreMult > 1) pts = Math.floor(pts * G.scoreMult);
-
   G.score += pts;
   G.coins += Math.max(1, Math.floor(pts/10));
   if(G.foodType === "apple") updateQuest("eat_apples");
-
   var px = G.offX + G.foodPos.x * G.cell + G.cell/2;
   var py = G.offY + G.foodPos.y * G.cell + G.cell/2;
   spawnParts(px, py, f.color, 12);
@@ -758,19 +786,15 @@ function eatFoodFn(){
     G.shakeTime = 0.25; G.shakeInt = 10;
     spawnParts(px, py, C.GOLD, 20);
   }
-
   var names = { apple:"ПИЦЦА", frog:"ЖАБА", skull:"ЧЕРЕП", moai:"МОАИ",
     banana:"БАНАН", gem:"АЛМАЗ", fire:"ПЕРЕЦ", cherry:"ВИШНЯ", star:"ЗВЕЗДА" };
-
   if(f.x2){ G.scoreMult = 2; G.scoreMultTimer = 5; toast("x2 ОЧКИ!"); }
   else if(f.slow){ G.moveInterval = Math.min(G.moveInterval + 0.05, 0.35); toast("ЗАМЕДЛЕНИЕ"); }
   else if(f.speed){ G.speedBoostTimer = 3; toast("УСКОРЕНИЕ!"); }
   else if(f.invincible){ G.invTimer = 4; toast("НЕУЯЗВИМОСТЬ!"); flash("#ffff80", 0.2); }
   else { toast((names[G.foodType]||"") + " +" + pts); }
-
   if(G.upMagnet > 0 && G.foodType === "gem"){ G.magnetTimer = 3 + 0.5*G.upMagnet; toast("МАГНИТ!"); }
   if(G.upFreeze > 0 && G.foodType === "banana"){ G.freezeTimer = 2 + 0.5*G.upFreeze; toast("ЗАМОРОЗКА!"); }
-
   if(G.mode !== "zen"){
     G.scoreForSpeed += pts;
     var newLv = Math.floor(G.scoreForSpeed / G.spsLevel);
@@ -782,7 +806,6 @@ function eatFoodFn(){
     }
   }
   if(f.death) unlockAch("eat_skull");
-
   var oldBest = getBest();
   if(G.score > oldBest){
     setBest(G.score);
@@ -853,6 +876,16 @@ function showOver(reason){
 function hideOver(){ $("over").classList.remove("show"); }
 
 function tryRevive(){
+  // Пробуем показать рекламу через VK
+  if (typeof vkBridge !== "undefined") {
+    vkBridge.send("VKWebAppShowNativeAds", { ad_format: "reward" })
+      .then(function(){ doRevive(); })
+      .catch(function(){ doRevive(); });
+  } else {
+    doRevive();
+  }
+}
+function doRevive(){
   toast("Реклама (заглушка)");
   G.reviveUsed = true;
   G.over = false; G.running = true; G.paused = false;
@@ -1566,6 +1599,12 @@ function bootstrap(){
     setTimeout(function(){
       startGame();
       requestAnimationFrame(loop);
+      // VK часто меняет размер iframe — пересчитываем
+      setInterval(function(){
+        var w1 = window.innerWidth || document.documentElement.clientWidth;
+        var h1 = window.innerHeight || document.documentElement.clientHeight;
+        if(w1 > 100 && h1 > 100 && (w1 !== G.w || h1 !== G.h)) onResize();
+      }, 1000);
     }, 300);
   } catch(err) {
     console.error("[BOOT ERROR]", err);
