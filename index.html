@@ -7,11 +7,12 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; background:#0a0e14; color:#fff;
-  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
   overflow:hidden; user-select:none; touch-action:none; }
 canvas { display:block; position:fixed; inset:0; }
 .hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
-.hud .lbl { position:absolute; font-weight:bold; text-shadow: 0 0 6px #000, 0 0 3px #000; white-space:nowrap; }
+.hud .lbl { position:absolute; font-weight:bold;
+  text-shadow:0 0 6px #000,0 0 3px #000; white-space:nowrap; }
 #score  { top:8px;  left:12px; color:#ffd633; font-size:22px; }
 #best   { top:36px; left:12px; color:#66b3ff; font-size:16px; }
 #coins  { top:8px;  right:12px; color:#ffd633; font-size:18px; text-align:right; }
@@ -50,8 +51,8 @@ canvas { display:block; position:fixed; inset:0; }
   color:#fff; border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;
   white-space:pre-line; line-height:1.3; }
 #shop .sk.owned { background:#1a2a3f; border-color:#4a8fd4; }
-#shop .sk.eq    { background:#1e3a25; border-color:#4ad44a; }
-#shop .sk.buy   { background:#3a2a2a; border-color:#d44a4a; }
+#shop .sk.eq { background:#1e3a25; border-color:#4ad44a; }
+#shop .sk.buy { background:#3a2a2a; border-color:#d44a4a; }
 #mode { border-color:#4ad44a; width:500px; }
 #mode .mb { display:block; width:100%; padding:14px; margin-bottom:8px;
   background:#1e2a3a; border:1px solid #334155; color:#fff; border-radius:12px;
@@ -87,6 +88,12 @@ canvas { display:block; position:fixed; inset:0; }
   font-size:16px; font-weight:bold; opacity:0; transition:opacity 0.3s;
   pointer-events:none; z-index:30; }
 #toast.on { opacity:1; }
+@media (max-width:600px) {
+  .sbtn { width:76px; font-size:10px; }
+  #score { font-size:18px; } #best { font-size:13px; }
+  #coins { font-size:14px; } #level, #streak { font-size:11px; }
+  #status { font-size:14px; } #combo { font-size:16px; }
+}
 </style>
 </head>
 <body>
@@ -153,36 +160,24 @@ canvas { display:block; position:fixed; inset:0; }
 
 <script>
 "use strict";
-
-/* ============================================================
-   КОНСТАНТЫ
-============================================================ */
 var GRID = 20;
 var FOOD_SPAWN_ANIM = 0.25;
-
-var C = {
-  GOLD:"#ffd633", RED:"#f24d4d", GREEN:"#4cd964",
-  BLUE:"#66b3ff", PURPLE:"#9a6ad4", ORANGE:"#ff9933",
-  OBSTACLE:"#59404d"
-};
-
+var C = { GOLD:"#ffd633", RED:"#f24d4d", GREEN:"#4cd964", BLUE:"#66b3ff", PURPLE:"#9a6ad4", ORANGE:"#ff9933", OBSTACLE:"#59404d" };
 var BG_STAGES = [
   { bg:"#1a2635", grid:"#232f40" },
   { bg:"#2a1a26", grid:"#3a2530" },
   { bg:"#0d0d26", grid:"#1a1a30" },
   { bg:"#05050f", grid:"#0f0a1a" }
 ];
-
 var MODES = {
-  classic:  { name:"КЛАССИКА", desc:"Стены убивают",                      bi:0.18 },
-  no_walls: { name:"БЕЗ СТЕН", desc:"Телепорт через края",                bi:0.18 },
-  timed:    { name:"НА ВРЕМЯ", desc:"60 секунд на рекорд",                bi:0.18 },
+  classic:  { name:"КЛАССИКА", desc:"Стены убивают", bi:0.18 },
+  no_walls: { name:"БЕЗ СТЕН", desc:"Телепорт через края", bi:0.18 },
+  timed:    { name:"НА ВРЕМЯ", desc:"60 секунд на рекорд", bi:0.18 },
   hardcore: { name:"ХАРДКОР",  desc:"Быстрее, больше черепов, препятствия", bi:0.15 },
-  zen:      { name:"ЗЕН",      desc:"Без скорости, без черепов, чилл",     bi:0.16 }
+  zen:      { name:"ЗЕН",      desc:"Без скорости, без черепов, чилл", bi:0.16 }
 };
-
 var SKINS = {
-  classic: { name:"Обычная",   head:"#66e666", body:"#4dbf59", outline:"#1a5926", price:0,    owned:true  },
+  classic: { name:"Обычная",   head:"#66e666", body:"#4dbf59", outline:"#1a5926", price:0,    owned:true },
   rainbow: { name:"Радужная",  head:"#ff80cc", body:"#80b3ff", outline:"#4d1a66", price:100,  owned:false, rainbow:true },
   fire:    { name:"Огненная",  head:"#ff6619", body:"#e63319", outline:"#660d00", price:250,  owned:false, fire:true },
   gold:    { name:"Золотая",   head:"#ffd933", body:"#e6b319", outline:"#805900", price:500,  owned:false },
@@ -190,7 +185,6 @@ var SKINS = {
   neon:    { name:"Неон",      head:"#33ffe6", body:"#ff19b3", outline:"#9900e6", price:750,  owned:false, neon:true },
   galaxy:  { name:"Галактика", head:"#804dff", body:"#331a80", outline:"#0d0533", price:1500, owned:false, galaxy:true }
 };
-
 var FOOD = {
   apple:  { score:10, color:"#ffb34d" },
   frog:   { score:25, color:"#66ff66" },
@@ -202,7 +196,6 @@ var FOOD = {
   cherry: { score:5,  color:"#e6264d" },
   star:   { score:40, color:"#ffff80", invincible:true }
 };
-
 var ACHS = {
   first_game:{name:"Первый запуск!", reward:10},
   score_100:{name:"СТО!", reward:25},
@@ -220,58 +213,42 @@ var ACHS = {
   prestige_1:{name:"ПРЕСТИЖ!", reward:500},
   boss_food:{name:"ОХОТНИК НА БОССОВ", reward:200}
 };
-
 var UPGRADE_PRICES = { shield:50, magnet:100, freeze:150, xray:30 };
 var UPGRADE_NAMES = ["shield","magnet","freeze","xray"];
 var SAVE_KEY = "meme_snake_5_2_save";
 
-/* ============================================================
-   СОСТОЯНИЕ
-============================================================ */
 var G = {
-  cell: 32, offX: 0, offY: 0, fieldSize: 0,
-  snake: [], snakeVis: [],
-  dir: {x:1,y:0}, nextDir: {x:1,y:0}, qDir: {x:1,y:0},
-  foodPos: {x:0,y:0}, foodType: "apple", foodTimer: 0, foodMax: 6,
-  foodEaten: 0, foodSpawnProgress: 1,
-  bossOn: false, bossPos: {x:0,y:0}, bossTimer: 0, bossMax: 8,
-  portals: [], portalTimer: 0,
-  obstacles: [],
-  score: 0, best: 0, coins: 0, gamesPlayed: 0,
-  bestPerMode: { classic:0, no_walls:0, timed:0, hardcore:0, zen:0 },
-  pLevel: 1, pXp: 0, pXpNeed: 100,
-  prestige: 0, totalScore: 0,
-  streak: 0, lastDay: 0,
-  quests: {
-    eat_apples: {name:"Съешь 20 яблок", target:20, progress:0, reward:100, done:false},
-    score_500:  {name:"Набери 500 очков", target:1, progress:0, reward:200, done:false},
-    play_5:     {name:"Сыграй 5 игр", target:5, progress:0, reward:150, done:false}
+  cell:32, offX:0, offY:0, fieldSize:0,
+  snake:[], snakeVis:[],
+  dir:{x:1,y:0}, nextDir:{x:1,y:0}, qDir:{x:1,y:0},
+  foodPos:{x:0,y:0}, foodType:"apple", foodTimer:0, foodMax:6,
+  foodEaten:0, foodSpawnProgress:1,
+  bossOn:false, bossPos:{x:0,y:0}, bossTimer:0, bossMax:8,
+  portals:[], portalTimer:0, obstacles:[],
+  score:0, best:0, coins:0, gamesPlayed:0,
+  bestPerMode:{ classic:0, no_walls:0, timed:0, hardcore:0, zen:0 },
+  pLevel:1, pXp:0, pXpNeed:100, prestige:0, totalScore:0,
+  streak:0, lastDay:0,
+  quests:{
+    eat_apples:{name:"Съешь 20 яблок", target:20, progress:0, reward:100, done:false},
+    score_500:{name:"Набери 500 очков", target:1, progress:0, reward:200, done:false},
+    play_5:{name:"Сыграй 5 игр", target:5, progress:0, reward:150, done:false}
   },
-  questDay: 0,
-  mode: "classic",
-  running: false, paused: false, over: false,
-  moveTimer: 0, moveInterval: 0.18, baseInterval: 0.18, minInterval: 0.09,
-  accelPer50: 0.003, spsLevel: 100, scoreForSpeed: 0, speedLv: 0, animProgress: 0,
-  timedTimer: 60,
-  combo: 1, comboTimer: 0, comboLimit: 3,
-  upShield: 0, upMagnet: 0, upFreeze: 0, upXray: 0,
-  shieldActive: false, magnetTimer: 0, freezeTimer: 0, xrayActive: false, invTimer: 0,
-  speedBoostTimer: 0, scoreMult: 1, scoreMultTimer: 0,
-  zoom: 1, zoomTarget: 1,
-  shakeTime: 0, shakeInt: 0,
-  flashTimer: 0, flashColor: "#ffffff",
-  reviveUsed: false,
-  skin: "classic",
-  soundOn: true,
-  trailParts: [], trailTimer: 0, trailInterval: 0.08,
-  confetti: [], particles: [],
-  touchStart: null,
-  w: 0, h: 0
+  questDay:0, mode:"classic",
+  running:false, paused:false, over:false,
+  moveTimer:0, moveInterval:0.18, baseInterval:0.18, minInterval:0.09,
+  accelPer50:0.003, spsLevel:100, scoreForSpeed:0, speedLv:0, animProgress:0,
+  timedTimer:60, combo:1, comboTimer:0, comboLimit:3,
+  upShield:0, upMagnet:0, upFreeze:0, upXray:0,
+  shieldActive:false, magnetTimer:0, freezeTimer:0, xrayActive:false, invTimer:0,
+  speedBoostTimer:0, scoreMult:1, scoreMultTimer:0,
+  zoom:1, zoomTarget:1, shakeTime:0, shakeInt:0,
+  flashTimer:0, flashColor:"#ffffff",
+  reviveUsed:false, skin:"classic", soundOn:true,
+  trailParts:[], trailTimer:0, trailInterval:0.08,
+  confetti:[], particles:[], touchStart:null, w:0, h:0
 };
 
-/* ============================================================
-   УТИЛИТЫ
-============================================================ */
 function rand(a,b){ return a + Math.random()*(b-a); }
 function randi(a,b){ return Math.floor(rand(a,b+1)); }
 function pick(arr){ return arr[randi(0,arr.length-1)]; }
@@ -292,10 +269,8 @@ function rgbStr(r,g,b,a){
   return "rgba("+(r|0)+","+(g|0)+","+(b|0)+","+a+")";
 }
 function darken(h,a){ var c=hexRgb(h); return rgbStr(c.r*(1-a), c.g*(1-a), c.b*(1-a), c.a); }
-function lighten(h,a){ var c=hexRgb(h);
-  return rgbStr(c.r+(255-c.r)*a, c.g+(255-c.g)*a, c.b+(255-c.b)*a, c.a); }
-function lerpColor(h1,h2,t){ var a=hexRgb(h1), b=hexRgb(h2);
-  return rgbStr(a.r+(b.r-a.r)*t, a.g+(b.g-a.g)*t, a.b+(b.b-a.b)*t, a.a+(b.a-a.a)*t); }
+function lighten(h,a){ var c=hexRgb(h); return rgbStr(c.r+(255-c.r)*a, c.g+(255-c.g)*a, c.b+(255-c.b)*a, c.a); }
+function lerpColor(h1,h2,t){ var a=hexRgb(h1), b=hexRgb(h2); return rgbStr(a.r+(b.r-a.r)*t, a.g+(b.g-a.g)*t, a.b+(b.b-a.b)*t, a.a+(b.a-a.a)*t); }
 function hsv(h,s,v){
   var i=Math.floor(h*6), f=h*6-i, p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s), r,g,b;
   switch(i%6){
@@ -309,13 +284,11 @@ function hsv(h,s,v){
   return rgbStr(r*255, g*255, b*255);
 }
 
-/* ============================================================
-   СОХРАНЕНИЕ
-============================================================ */
 function saveGame(){
-  var sk = {}; for(var k in SKINS) sk[k]=SKINS[k].owned;
-  var ac = {}; for(var k in ACHS) ac[k]=!!ACHS[k].unlocked;
-  var qd = {}; for(var k in G.quests) qd[k]={progress:G.quests[k].progress, done:G.quests[k].done};
+  var sk={}, ac={}, qd={};
+  for(var k in SKINS) sk[k]=SKINS[k].owned;
+  for(var k in ACHS) ac[k]=!!ACHS[k].unlocked;
+  for(var k in G.quests) qd[k]={progress:G.quests[k].progress, done:G.quests[k].done};
   var data = {
     best:G.best, bestPerMode:G.bestPerMode, coins:G.coins, gamesPlayed:G.gamesPlayed,
     skin:G.skin, skins:sk, achievements:ac,
@@ -326,7 +299,6 @@ function saveGame(){
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e){}
 }
-
 function loadGame(){
   var raw; try { raw = localStorage.getItem(SAVE_KEY); } catch(e){ return; }
   if(!raw) return;
@@ -334,13 +306,11 @@ function loadGame(){
   if(!d) return;
   G.best = d.best||0;
   if(d.bestPerMode) for(var k in d.bestPerMode) if(G.bestPerMode[k]!==undefined) G.bestPerMode[k]=d.bestPerMode[k];
-  G.coins = d.coins||0;
-  G.gamesPlayed = d.gamesPlayed||0;
+  G.coins = d.coins||0; G.gamesPlayed = d.gamesPlayed||0;
   G.skin = d.skin||"classic";
   G.pLevel = d.pLevel||1; G.pXp = d.pXp||0; G.pXpNeed = d.pXpNeed||100;
   G.prestige = d.prestige||0; G.totalScore = d.totalScore||0;
-  G.streak = d.streak||0; G.lastDay = d.lastDay||0;
-  G.questDay = d.questDay||0;
+  G.streak = d.streak||0; G.lastDay = d.lastDay||0; G.questDay = d.questDay||0;
   G.upShield = d.upShield||0; G.upMagnet = d.upMagnet||0;
   G.upFreeze = d.upFreeze||0; G.upXray = d.upXray||0;
   G.soundOn = d.soundOn!==false;
@@ -354,12 +324,9 @@ function loadGame(){
   }
 }
 
-/* ============================================================
-   UI / DOM
-============================================================ */
 var cv = document.getElementById("cv");
 var ctx = cv.getContext("2d");
-var $ = function(id){ return document.getElementById(id); };
+function $(id){ return document.getElementById(id); }
 
 function setupDOM(){
   $("btnPause").onclick = togglePause;
@@ -367,17 +334,14 @@ function setupDOM(){
   $("btnMode").onclick  = function(){ togglePanel("mode"); };
   $("btnQuest").onclick = function(){ togglePanel("quest"); };
   $("btnAch").onclick   = function(){ togglePanel("ach"); };
-
   var xs = document.querySelectorAll(".panel .x");
   for(var i=0;i<xs.length;i++){
     (function(b){ b.onclick = function(){ closePanel(b.dataset.close); }; })(xs[i]);
   }
-
   $("o-restart").onclick = function(){ hideOver(); startGame(); };
   $("o-revive").onclick  = tryRevive;
   $("o-leader").onclick  = function(){ toast("Лидерборд только на площадке"); };
   $("d-ok").onclick = function(){ $("daily").classList.remove("show"); G.paused = panelWasPaused; };
-
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", onResize);
   window.addEventListener("keydown", onKey);
@@ -409,8 +373,7 @@ function refreshShop(){
   var upg = $("upg"); upg.innerHTML = "";
   for(var i=0;i<UPGRADE_NAMES.length;i++){
     var u = UPGRADE_NAMES[i];
-    var lv = getUpgLevel(u);
-    var pr = getUpgPrice(u);
+    var lv = getUpgLevel(u), pr = getUpgPrice(u);
     var b = document.createElement("button");
     b.className = "ub " + (G.coins>=pr ? "ok" : "no");
     b.textContent = u + "\nУр." + lv + " | " + pr;
@@ -434,14 +397,7 @@ function refreshShop(){
     sk.appendChild(btn);
   }
 }
-
-function getUpgLevel(u){
-  if(u==="shield") return G.upShield;
-  if(u==="magnet") return G.upMagnet;
-  if(u==="freeze") return G.upFreeze;
-  if(u==="xray") return G.upXray;
-  return 0;
-}
+function getUpgLevel(u){ return u==="shield"?G.upShield:u==="magnet"?G.upMagnet:u==="freeze"?G.upFreeze:u==="xray"?G.upXray:0; }
 function getUpgPrice(u){ return Math.floor(UPGRADE_PRICES[u] * (1 + getUpgLevel(u)*0.6)); }
 function buyUpgrade(u){
   var p = getUpgPrice(u);
@@ -465,7 +421,6 @@ function buySkin(k){
   if(allOwned) unlockAch("all_skins");
   refreshShop(); updateUI(); saveGame();
 }
-
 function refreshModes(){
   var m = $("mlist"); m.innerHTML = "";
   for(var key in MODES){
@@ -497,7 +452,6 @@ function refreshAch(){
     a.appendChild(div);
   }
 }
-
 function toast(text){
   var t = $("toast");
   t.textContent = text;
@@ -505,7 +459,6 @@ function toast(text){
   clearTimeout(toast._t);
   toast._t = setTimeout(function(){ t.classList.remove("on"); }, 1800);
 }
-
 function updateUI(){
   $("score").textContent = "ОЧКИ: " + G.score;
   $("best").textContent  = "РЕКОРД: " + getBest();
@@ -516,9 +469,6 @@ function updateUI(){
 function getBest(){ return G.bestPerMode[G.mode] || 0; }
 function setBest(v){ if(v > (G.bestPerMode[G.mode]||0)) G.bestPerMode[G.mode] = v; }
 
-/* ============================================================
-   ЗВУК
-============================================================ */
 var audioCtx = null;
 function ensureAudio(){
   if(audioCtx) return;
@@ -554,16 +504,12 @@ function playDeath(){
 function playRecord(){ beep(1200, 0.15, "sine", 0.12); }
 function playBonus(){ beep(900, 0.1, "triangle", 0.12); }
 
-/* ============================================================
-   СТРИК / ЗАДАНИЯ
-============================================================ */
 function checkStreak(){
   var day = Math.floor(Date.now() / 86400000);
   if(G.lastDay === 0){ G.lastDay = day; G.streak = 1; return; }
   if(day === G.lastDay) return;
   if(day === G.lastDay+1){
-    G.streak++;
-    G.coins += 50*G.streak;
+    G.streak++; G.coins += 50*G.streak;
     toast("СТРИК " + G.streak + " ДНЕЙ! +" + (50*G.streak));
     $("d-title").textContent = "СТРИК " + G.streak + " ДНЕЙ";
     $("daily").classList.add("show");
@@ -593,13 +539,12 @@ function updateQuest(k, amt){
   }
 }
 
-/* ============================================================
-   РАЗМЕРЫ
-============================================================ */
 function onResize(){
   var dpr = window.devicePixelRatio || 1;
-  G.w = window.innerWidth;
-  G.h = window.innerHeight;
+  G.w = window.innerWidth || document.documentElement.clientWidth || 800;
+  G.h = window.innerHeight || document.documentElement.clientHeight || 600;
+  if(G.w < 50) G.w = 800;
+  if(G.h < 50) G.h = 600;
   cv.width  = G.w * dpr;
   cv.height = G.h * dpr;
   cv.style.width  = G.w + "px";
@@ -621,17 +566,10 @@ function recalcGrid(){
   G.offY = top + availH*0.5 - G.fieldSize*0.5;
 }
 
-/* ============================================================
-   ИГРА
-============================================================ */
 function startGame(){
-  G.snake.length = 0;
-  G.snakeVis.length = 0;
-  G.portals.length = 0;
-  G.trailParts.length = 0;
-  G.obstacles.length = 0;
-  G.confetti.length = 0;
-  G.particles.length = 0;
+  G.snake.length = 0; G.snakeVis.length = 0;
+  G.portals.length = 0; G.trailParts.length = 0;
+  G.obstacles.length = 0; G.confetti.length = 0; G.particles.length = 0;
   G.bossOn = false; G.bossTimer = 0; G.foodEaten = 0;
 
   var sx = Math.floor(GRID/2), sy = Math.floor(GRID/2);
@@ -689,18 +627,14 @@ function spawnFood(){
   G.foodEaten++;
   G.foodSpawnProgress = 0;
   if(G.foodEaten > 3 && Math.random() < 0.12 && !G.bossOn){ spawnBoss(); return; }
-
   var free = [];
-  for(var x=0;x<GRID;x++){
-    for(var y=0;y<GRID;y++){
-      var bad = false;
-      for(var i=0;i<G.snake.length;i++) if(G.snake[i].x===x && G.snake[i].y===y){ bad=true; break; }
-      if(!bad) for(var i=0;i<G.obstacles.length;i++) if(G.obstacles[i].x===x && G.obstacles[i].y===y){ bad=true; break; }
-      if(!bad) free.push({x:x,y:y});
-    }
+  for(var x=0;x<GRID;x++) for(var y=0;y<GRID;y++){
+    var bad = false;
+    for(var i=0;i<G.snake.length;i++) if(G.snake[i].x===x && G.snake[i].y===y){ bad=true; break; }
+    if(!bad) for(var i=0;i<G.obstacles.length;i++) if(G.obstacles[i].x===x && G.obstacles[i].y===y){ bad=true; break; }
+    if(!bad) free.push({x:x,y:y});
   }
   if(free.length > 0) G.foodPos = pick(free);
-
   var roll = Math.random();
   if(G.mode === "hardcore"){
     if(roll<0.32) G.foodType="apple"; else if(roll<0.42) G.foodType="cherry";
@@ -725,13 +659,11 @@ function spawnFood(){
 
 function spawnBoss(){
   var free = [];
-  for(var x=0;x<GRID;x++){
-    for(var y=0;y<GRID;y++){
-      var bad = false;
-      for(var i=0;i<G.snake.length;i++) if(G.snake[i].x===x && G.snake[i].y===y){ bad=true; break; }
-      if(!bad) for(var i=0;i<G.obstacles.length;i++) if(G.obstacles[i].x===x && G.obstacles[i].y===y){ bad=true; break; }
-      if(!bad) free.push({x:x,y:y});
-    }
+  for(var x=0;x<GRID;x++) for(var y=0;y<GRID;y++){
+    var bad = false;
+    for(var i=0;i<G.snake.length;i++) if(G.snake[i].x===x && G.snake[i].y===y){ bad=true; break; }
+    if(!bad) for(var i=0;i<G.obstacles.length;i++) if(G.obstacles[i].x===x && G.obstacles[i].y===y){ bad=true; break; }
+    if(!bad) free.push({x:x,y:y});
   }
   if(free.length === 0) return;
   G.bossPos = pick(free);
@@ -849,7 +781,6 @@ function eatFoodFn(){
       if(G.moveInterval <= G.minInterval + 0.001) unlockAch("speed_max");
     }
   }
-
   if(f.death) unlockAch("eat_skull");
 
   var oldBest = getBest();
@@ -862,11 +793,9 @@ function eatFoodFn(){
     spawnConfetti();
     saveGame();
   }
-
   addXp(Math.floor(pts/2));
   if(G.score >= 500) updateQuest("score_500");
   if(G.mode === "hardcore" && G.score % 300 < pts && G.score > 0) spawnObstacles();
-
   checkAchs();
   updateUI();
 }
@@ -875,8 +804,7 @@ function eatBossFn(){
   G.bossOn = false;
   var pts = 150 + Math.floor(Math.random()*100);
   if(G.scoreMult > 1) pts = Math.floor(pts * G.scoreMult);
-  G.score += pts;
-  G.coins += 30;
+  G.score += pts; G.coins += 30;
   var px = G.offX + G.bossPos.x * G.cell + G.cell/2;
   var py = G.offY + G.bossPos.y * G.cell + G.cell/2;
   spawnParts(px, py, C.GOLD, 24);
@@ -892,14 +820,11 @@ function eatBossFn(){
 }
 
 function die(reason){
-  G.running = false;
-  G.over = true;
-  G.gamesPlayed++;
-  G.totalScore += G.score;
+  G.running = false; G.over = true;
+  G.gamesPlayed++; G.totalScore += G.score;
   G.shakeTime = 0.6; G.shakeInt = 15;
   flash(C.RED, 0.15);
   G.zoomTarget = 0.85;
-
   if(G.snake.length > 0){
     var h = G.snake[0];
     var px = G.offX + h.x*G.cell + G.cell/2;
@@ -938,9 +863,6 @@ function tryRevive(){
   toast("ЩИТ АКТИВЕН!");
 }
 
-/* ============================================================
-   XP / АЧИВКИ
-============================================================ */
 function addXp(amt){
   G.pXp += amt;
   while(G.pXp >= G.pXpNeed){
@@ -976,23 +898,17 @@ function checkAchs(){
   if(!ACHS.combo_max.unlocked && G.combo >= 20) unlockAch("combo_max");
 }
 
-/* ============================================================
-   ПАУЗА / ВВОД
-============================================================ */
 function togglePause(){
   if(G.over) return;
   G.paused = !G.paused;
   $("btnPause").textContent = G.paused ? ">" : "II";
   $("status").textContent = G.paused ? "ПАУЗА" : "";
 }
-
 function queueDir(d){
   if(d.x === -G.dir.x && d.y === -G.dir.y) return;
   if(d.x === G.qDir.x && d.y === G.qDir.y) return;
-  G.qDir = d;
-  G.nextDir = d;
+  G.qDir = d; G.nextDir = d;
 }
-
 function onKey(e){
   if(document.querySelector(".panel.show")) return;
   var k = e.key, kl = k.toLowerCase();
@@ -1005,7 +921,6 @@ function onKey(e){
   if(kl==="m") togglePanel("mode");
   if(kl==="t") togglePanel("ach");
 }
-
 function onTouchStart(e){
   if(e.touches.length===0) return;
   G.touchStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
@@ -1022,42 +937,29 @@ function onTouchEnd(e){
   G.touchStart = null;
 }
 
-/* ============================================================
-   ЭФФЕКТЫ
-============================================================ */
 function spawnParts(x, y, color, count){
   for(var i=0;i<count;i++){
     var size = rand(4,8);
     var ang = rand(0, Math.PI*2);
     var spd = rand(80,200);
-    G.particles.push({
-      x:x, y:y, color:color, size:size,
+    G.particles.push({ x:x, y:y, color:color, size:size,
       vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd,
-      life:rand(0.3,0.6), maxLife:0.5
-    });
+      life:rand(0.3,0.6), maxLife:0.5 });
   }
 }
 function spawnConfetti(){
   var cols = [C.GOLD, C.RED, C.GREEN, C.BLUE, C.PURPLE, C.ORANGE, "#ffffff"];
   for(var i=0;i<60;i++){
-    G.confetti.push({
-      x:rand(0,G.w), y:rand(-40,-5),
+    G.confetti.push({ x:rand(0,G.w), y:rand(-40,-5),
       vx:rand(-40,40), vy:rand(120,260),
       rot:rand(0,Math.PI*2), rotSpeed:rand(-6,6),
-      size:rand(5,10), color:pick(cols),
-      life:rand(1.2,2.2)
-    });
+      size:rand(5,10), color:pick(cols), life:rand(1.2,2.2) });
   }
 }
 function flash(color, dur){ G.flashColor = color; G.flashTimer = dur*0.6; }
 
-/* ============================================================
-   UPDATE
-============================================================ */
 var lastTime = performance.now();
-
 function update(dt){
-  // Частицы
   for(var i=G.particles.length-1;i>=0;i--){
     var p = G.particles[i];
     p.x += p.vx*dt; p.y += p.vy*dt;
@@ -1065,7 +967,6 @@ function update(dt){
     p.life -= dt;
     if(p.life <= 0) G.particles.splice(i,1);
   }
-  // Конфетти
   for(var i=G.confetti.length-1;i>=0;i--){
     var c = G.confetti[i];
     c.x += c.vx*dt; c.y += c.vy*dt;
@@ -1077,30 +978,24 @@ function update(dt){
   if(G.flashTimer > 0) G.flashTimer -= dt*2;
   G.zoom = lerp(G.zoom, G.zoomTarget, dt*5);
   if(G.foodSpawnProgress < 1) G.foodSpawnProgress = Math.min(G.foodSpawnProgress + dt/FOOD_SPAWN_ANIM, 1);
-
   if(!G.running || G.paused) return;
-
   if(G.mode === "timed"){
     G.timedTimer -= dt;
     if(G.timedTimer <= 0){ die("Время вышло!"); return; }
   }
-
   if(G.magnetTimer > 0) G.magnetTimer -= dt;
   if(G.freezeTimer > 0) G.freezeTimer -= dt;
   if(G.invTimer > 0) G.invTimer -= dt;
-
   if(G.bossOn){
     G.bossTimer -= dt;
     if(G.bossTimer <= 0){ G.bossOn = false; spawnFood(); }
   }
-
   if(G.mode !== "hardcore" && G.mode !== "no_walls"){
     if(G.portals.length > 0){
       G.portalTimer -= dt;
       if(G.portalTimer <= 0) G.portals.length = 0;
     } else if(Math.random() < 0.0008) spawnPortals();
   }
-
   if(G.combo > 1){
     G.comboTimer += dt;
     if(G.comboTimer > G.comboLimit){ G.combo = 1; G.comboTimer = 0; }
@@ -1114,8 +1009,6 @@ function update(dt){
     G.foodTimer -= dt;
     if(G.foodTimer <= 0) spawnFood();
   }
-
-  // Trail
   G.trailTimer += dt;
   if(G.trailTimer >= G.trailInterval){ G.trailTimer = 0; spawnTrail(); }
   for(var i=G.trailParts.length-1;i>=0;i--){
@@ -1123,8 +1016,6 @@ function update(dt){
     p.life -= dt; p.y -= dt*15; p.radius *= 0.97;
     if(p.life <= 0) G.trailParts.splice(i,1);
   }
-
-  // Move
   var interval = G.moveInterval;
   if(G.speedBoostTimer > 0) interval *= 0.6;
   if(G.freezeTimer > 0) interval *= 3;
@@ -1134,8 +1025,6 @@ function update(dt){
     G.moveTimer -= interval;
     moveSnake();
   }
-
-  // Combo bar
   var parts = [];
   if(G.combo > 1) parts.push("КОМБО x" + G.combo);
   parts.push("СКОРОСТЬ УР." + G.speedLv);
@@ -1162,7 +1051,6 @@ function spawnPortals(){
   }
   G.portalTimer = 10;
 }
-
 function spawnTrail(){
   if(G.snake.length === 0) return;
   var sk = SKINS[G.skin];
@@ -1177,31 +1065,24 @@ function spawnTrail(){
   G.trailParts.push({ x:x, y:y, life:0.6, maxLife:0.6, color:col, radius:G.cell*0.35 });
 }
 
-/* ============================================================
-   RENDER
-============================================================ */
 function render(){
   var w = G.w, h = G.h;
   var sx = 0, sy = 0;
   if(G.shakeTime > 0){ sx = rand(-G.shakeInt, G.shakeInt); sy = rand(-G.shakeInt, G.shakeInt); }
-
   var stageIdx = clamp(Math.floor(G.score/300), 0, BG_STAGES.length-1);
   var stage = BG_STAGES[stageIdx];
   ctx.fillStyle = stage.bg;
   ctx.fillRect(0,0,w,h);
-
   var cx = w*0.5, cy = h*0.5;
   var goX = (G.offX + sx - cx) * G.zoom + cx;
   var goY = (G.offY + sy - cy) * G.zoom + cy;
   var cs = G.cell * G.zoom;
   var fpx = G.fieldSize * G.zoom;
-
   ctx.fillStyle = stage.grid;
   ctx.fillRect(goX, goY, fpx, fpx);
   ctx.strokeStyle = "rgba(102,153,255,0.8)";
   ctx.lineWidth = 3;
   ctx.strokeRect(goX, goY, fpx, fpx);
-
   ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
   for(var i=0;i<=GRID;i++){
@@ -1210,8 +1091,6 @@ function render(){
     var y = goY + i*cs;
     ctx.beginPath(); ctx.moveTo(goX, y); ctx.lineTo(goX+fpx, y); ctx.stroke();
   }
-
-  // Препятствия
   for(var i=0;i<G.obstacles.length;i++){
     var o = G.obstacles[i];
     var px = goX + o.x*cs, py = goY + o.y*cs;
@@ -1226,8 +1105,6 @@ function render(){
     ctx.moveTo(px+cs-4, py+4); ctx.lineTo(px+4, py+cs-4);
     ctx.stroke();
   }
-
-  // Trail
   for(var i=0;i<G.trailParts.length;i++){
     var p = G.trailParts[i];
     var a = (p.life/p.maxLife)*0.5;
@@ -1238,8 +1115,6 @@ function render(){
     ctx.beginPath(); ctx.arc(px, py, p.radius*G.zoom, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
   }
-
-  // Portals
   for(var i=0;i<G.portals.length;i++){
     var p = G.portals[i];
     var px = goX + p.x*cs + cs/2;
@@ -1253,8 +1128,6 @@ function render(){
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(px, py, cs*0.4, 0, Math.PI*2); ctx.stroke();
   }
-
-  // Boss
   if(G.bossOn){
     var px = goX + G.bossPos.x*cs + cs/2;
     var py = goY + G.bossPos.y*cs + cs/2;
@@ -1266,8 +1139,6 @@ function render(){
     ctx.fillStyle = C.GOLD;
     ctx.fillRect(bx, by, bw * (G.bossTimer/G.bossMax), bh);
   }
-
-  // Food
   if(!G.bossOn && FOOD[G.foodType]){
     var px = goX + G.foodPos.x*cs + cs/2;
     var py = goY + G.foodPos.y*cs + cs/2;
@@ -1294,16 +1165,13 @@ function render(){
       ctx.fillRect(bx, by, bw*fill, bh);
     }
   }
-
   drawSnake(goX, goY, cs);
-
   if(G.flashTimer > 0){
     var a = clamp(G.flashTimer*0.8, 0, 0.35);
     var col = hexRgb(G.flashColor);
     ctx.fillStyle = rgbStr(col.r, col.g, col.b, a);
     ctx.fillRect(0, 0, w, h);
   }
-
   for(var i=0;i<G.confetti.length;i++){
     var c = G.confetti[i];
     var a = clamp(c.life, 0, 1);
@@ -1315,7 +1183,6 @@ function render(){
     ctx.fillRect(-c.size/2, -c.size/2, c.size, c.size);
     ctx.restore();
   }
-
   for(var i=0;i<G.particles.length;i++){
     var p = G.particles[i];
     var a = p.life/p.maxLife;
@@ -1325,12 +1192,8 @@ function render(){
   }
 }
 
-/* ============================================================
-   SNAKE RENDER
-============================================================ */
 function drawSnake(goX, goY, cs){
   var sk = SKINS[G.skin];
-  // Связки
   if(G.snake.length >= 2){
     for(var i=0;i<G.snake.length-1;i++){
       var s1 = G.snake[i], s2 = G.snake[i+1];
@@ -1352,8 +1215,6 @@ function drawSnake(goX, goY, cs){
       }
     }
   }
-
-  // Тело
   for(var i=G.snake.length-1;i>=1;i--){
     var s = G.snake[i], v = G.snakeVis[i] || s;
     var px = goX + lerp(v.x, s.x, G.animProgress)*cs;
@@ -1361,7 +1222,6 @@ function drawSnake(goX, goY, cs){
     var cxx = px + cs/2, cyy = py + cs/2;
     var t = i/Math.max(1, G.snake.length-1);
     var r = cs*0.45*(1 - t*0.5);
-
     var body = sk.body;
     if(sk.rainbow){
       var hue = ((i*0.08 + performance.now()*0.0005)%1 + 1)%1;
@@ -1375,25 +1235,19 @@ function drawSnake(goX, goY, cs){
     } else {
       body = darken(sk.body, t*0.3);
     }
-
     if(sk.neon){
       var c0 = hexRgb(body);
       ctx.fillStyle = rgbStr(c0.r, c0.g, c0.b, 0.18);
       ctx.beginPath(); ctx.arc(cxx, cyy, r*1.4, 0, Math.PI*2); ctx.fill();
     }
-
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.beginPath(); ctx.arc(cxx, cyy+3, r, 0, Math.PI*2); ctx.fill();
-
     ctx.fillStyle = sk.outline;
     ctx.beginPath(); ctx.arc(cxx, cyy, r+2, 0, Math.PI*2); ctx.fill();
-
     ctx.fillStyle = body;
     ctx.beginPath(); ctx.arc(cxx, cyy, r, 0, Math.PI*2); ctx.fill();
-
     ctx.fillStyle = lighten(body, 0.4);
     ctx.beginPath(); ctx.arc(cxx - r*0.3, cyy - r*0.3, r*0.3, 0, Math.PI*2); ctx.fill();
-
     if(sk.galaxy){
       for(var s2=0; s2<3; s2++){
         var seed = (i*7919 + s2*131) % 100;
@@ -1405,8 +1259,6 @@ function drawSnake(goX, goY, cs){
       }
     }
   }
-
-  // Голова
   if(G.snake.length > 0){
     var head = G.snake[0], v = G.snakeVis[0] || head;
     var px = goX + lerp(v.x, head.x, G.animProgress)*cs;
@@ -1414,7 +1266,6 @@ function drawSnake(goX, goY, cs){
     var cxx = px + cs/2, cyy = py + cs/2;
     var pulse = 1 + Math.sin(performance.now()*0.005)*0.05;
     var r = cs*0.5*pulse;
-
     var hc = sk.head;
     if(sk.fire){
       hc = lerpColor(sk.head, "#ffff80", Math.sin(performance.now()*0.01)*0.3 + 0.3);
@@ -1424,7 +1275,6 @@ function drawSnake(goX, goY, cs){
       ctx.fillStyle = rgbStr(ch.r, ch.g, ch.b, 0.2);
       ctx.beginPath(); ctx.arc(cxx, cyy, r*1.5, 0, Math.PI*2); ctx.fill();
     }
-
     ctx.fillStyle = "rgba(0,0,0,0.4)";
     ctx.beginPath(); ctx.arc(cxx, cyy+4, r, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = sk.outline;
@@ -1433,8 +1283,6 @@ function drawSnake(goX, goY, cs){
     ctx.beginPath(); ctx.arc(cxx, cyy, r, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = lighten(hc, 0.4);
     ctx.beginPath(); ctx.arc(cxx - r*0.35, cyy - r*0.35, r*0.3, 0, Math.PI*2); ctx.fill();
-
-    // Глаза
     var d = G.dir;
     var dlen = Math.hypot(d.x, d.y) || 1;
     d = { x:d.x/dlen, y:d.y/dlen };
@@ -1444,7 +1292,6 @@ function drawSnake(goX, goY, cs){
     var eyeL = { x:cxx + efX + esX, y:cyy + efY + esY };
     var eyeR = { x:cxx + efX - esX, y:cyy + efY - esY };
     var er = r*0.28;
-
     ctx.fillStyle = "#ffffff";
     ctx.beginPath(); ctx.arc(eyeL.x, eyeL.y, er, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(eyeR.x, eyeR.y, er, 0, Math.PI*2); ctx.fill();
@@ -1452,7 +1299,6 @@ function drawSnake(goX, goY, cs){
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(eyeL.x, eyeL.y, er, 0, Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.arc(eyeR.x, eyeR.y, er, 0, Math.PI*2); ctx.stroke();
-
     var poX = d.x*er*0.4, poY = d.y*er*0.4;
     var pr = er*0.55;
     ctx.fillStyle = "#000";
@@ -1461,15 +1307,11 @@ function drawSnake(goX, goY, cs){
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.arc(eyeL.x + poX - 2, eyeL.y + poY - 2, pr*0.35, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(eyeR.x + poX - 2, eyeR.y + poY - 2, pr*0.35, 0, Math.PI*2); ctx.fill();
-
-    // Румянец
     var bfX = -d.x*r*0.55, bfY = -d.y*r*0.55;
     var bsX = px2*r*0.7, bsY = py2*r*0.7;
     ctx.fillStyle = "rgba(255,128,128,0.5)";
     ctx.beginPath(); ctx.arc(cxx + bfX + bsX, cyy + bfY + bsY, r*0.16, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(cxx + bfX - bsX, cyy + bfY - bsY, r*0.16, 0, Math.PI*2); ctx.fill();
-
-    // Рот
     var mcX = cxx + d.x*r*0.55, mcY = cyy + d.y*r*0.55;
     var mpX = px2*r*0.25, mpY = py2*r*0.25;
     ctx.strokeStyle = "rgba(77,26,26,0.7)";
@@ -1478,8 +1320,6 @@ function drawSnake(goX, goY, cs){
     ctx.moveTo(mcX - mpX, mcY - mpY);
     ctx.lineTo(mcX + mpX, mcY + mpY);
     ctx.stroke();
-
-    // Язык
     var ttime = Math.sin(performance.now()*0.008)*0.5 + 0.5;
     if(ttime >= 0.3){
       var tsX = cxx + d.x*r, tsY = cyy + d.y*r;
@@ -1496,9 +1336,6 @@ function drawSnake(goX, goY, cs){
   }
 }
 
-/* ============================================================
-   FOOD RENDER
-============================================================ */
 function drawFood(type, x, y, size, color){
   var r = size*0.42;
   if(type === "apple")  return drawPizza(x,y,r);
@@ -1511,17 +1348,14 @@ function drawFood(type, x, y, size, color){
   if(type === "cherry") return drawCherry(x,y,r);
   if(type === "star")   return drawStar(x,y,r);
 }
-
 function drawPizza(cx,cy,r){
   ctx.fillStyle = "#ffbf4d";
   ctx.beginPath();
   ctx.moveTo(cx, cy - r*0.9);
   ctx.lineTo(cx - r*0.8, cy + r*0.7);
   ctx.lineTo(cx + r*0.8, cy + r*0.7);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "#b37326";
-  ctx.lineWidth = 4;
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#b37326"; ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(cx - r*0.8, cy + r*0.7);
   ctx.lineTo(cx + r*0.8, cy + r*0.7);
@@ -1545,8 +1379,7 @@ function drawFrog(cx,cy,r){
   ctx.fillStyle = "#000";
   ctx.beginPath(); ctx.arc(cx - r*0.4, cy - r*0.5, r*0.11, 0, Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.arc(cx + r*0.4, cy - r*0.5, r*0.11, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = "#264026";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#264026"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(cx, cy + r*0.15, r*0.5, 0.2, Math.PI - 0.2); ctx.stroke();
 }
 function drawSkull(cx,cy,r){
@@ -1686,20 +1519,14 @@ function drawPepper(cx,cy,r){
   ctx.fillStyle = "#66d94d";
   ctx.beginPath(); ctx.arc(cx - r*0.7, cy - r*0.9, r*0.12, 0, Math.PI*2); ctx.fill();
 }
-
-/* ============================================================
-   BOSS
-============================================================ */
 function drawBoss(cx, cy, cs){
   var r = cs*0.55;
   var pulse = 1 + Math.sin(performance.now()*0.008)*0.1;
   r *= pulse;
-
   ctx.fillStyle = "rgba(255,217,77,0.15)";
   ctx.beginPath(); ctx.arc(cx, cy, r*1.5, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = "rgba(255,217,77,0.25)";
   ctx.beginPath(); ctx.arc(cx, cy, r*1.2, 0, Math.PI*2); ctx.fill();
-
   ctx.fillStyle = "#ffd633";
   ctx.beginPath();
   ctx.moveTo(cx - r*0.7, cy + r*0.3);
@@ -1710,21 +1537,16 @@ function drawBoss(cx, cy, cs){
   ctx.lineTo(cx + r*0.7, cy - r*0.1);
   ctx.lineTo(cx + r*0.7, cy + r*0.3);
   ctx.closePath(); ctx.fill();
-
   ctx.fillStyle = "#ff4d4d";
   ctx.beginPath(); ctx.arc(cx - r*0.7, cy - r*0.1, r*0.1, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = "#4de6ff";
   ctx.beginPath(); ctx.arc(cx, cy - r*0.5, r*0.12, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = "#ff4d4d";
   ctx.beginPath(); ctx.arc(cx + r*0.7, cy - r*0.1, r*0.1, 0, Math.PI*2); ctx.fill();
-
   ctx.fillStyle = "#e6b319";
   ctx.fillRect(cx - r*0.65, cy + r*0.3, r*1.3, r*0.5);
 }
 
-/* ============================================================
-   MAIN LOOP
-============================================================ */
 function loop(now){
   var dt = Math.min((now - lastTime)/1000, 0.1);
   lastTime = now;
@@ -1733,38 +1555,21 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-/* ============================================================
-   YANDEX SDK (заглушка)
-============================================================ */
-var YSDK = {
-  ready: false,
-  init: function(){
-    if(typeof YaGames !== "undefined"){
-      YaGames.init().then(function(sdk){
-        YSDK.ready = true;
-        window.ysdk = sdk;
-      });
-    } else {
-      console.log("[YSDK] Не обнаружен — работаем в offline");
-    }
-  }
-};
-
-/* ============================================================
-   BOOTSTRAP
-============================================================ */
 function bootstrap(){
-  setupDOM();
-  loadGame();
-  checkStreak();
-  checkQuests();
-  onResize();
-  updateUI();
-  YSDK.init();
-  setTimeout(function(){
-    startGame();
-    requestAnimationFrame(loop);
-  }, 300);
+  try {
+    setupDOM();
+    loadGame();
+    checkStreak();
+    checkQuests();
+    onResize();
+    updateUI();
+    setTimeout(function(){
+      startGame();
+      requestAnimationFrame(loop);
+    }, 300);
+  } catch(err) {
+    console.error("[BOOT ERROR]", err);
+  }
   document.addEventListener("click", ensureAudio, { once:true });
   document.addEventListener("touchstart", ensureAudio, { once:true });
 }
